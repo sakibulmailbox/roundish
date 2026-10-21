@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Restaurant Bill</title>
 <style>
 :root{--bg:#f3f6f4;--c:#fff;--t:#16241c;--m:#5d6b63;--g:#1f7a4d;--gd:#16603c;--gold:#c9a227;--b:#d5ddd8;--r:#b3261e}
 @media(prefers-color-scheme:dark){:root{--bg:#0f1b15;--c:#17261e;--t:#e6efe9;--m:#9bb0a4;--g:#2fa56b;--gd:#238553;--b:#2c4036;--r:#ff8a80}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:15px/1.4 system-ui,"Noto Sans Bengali",Arial,sans-serif}
+*{box-sizing:border-box}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;background:var(--bg);color:var(--t);font:15px/1.4 system-ui,"Noto Sans Bengali",Arial,sans-serif}
 .card{background:var(--c);border:1px solid var(--b);border-radius:10px;padding:14px;margin:10px auto;max-width:1000px}
 #login{max-width:380px;margin-top:8vh}h1,h2{margin:0 0 8px;color:var(--g)}h1{font-size:22px}h2{font-size:17px}
 input,select,button{font:inherit;padding:8px;border:1px solid var(--b);border-radius:7px;background:var(--c);color:var(--t);max-width:100%}
@@ -21,6 +21,9 @@ td.n,th.n{text-align:right}td input{border:0;padding:4px;min-width:60px}td.am{te
 .tot{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:10px}.tot div{border:1px solid var(--gold);border-radius:8px;padding:8px;text-align:center}.tot b{display:block;font-size:18px}
 .st{font-size:12px;padding:2px 7px;border-radius:9px;border:1px solid var(--b)}.Accepted{color:var(--g)}.Rejected{color:var(--r)}.Sent{color:var(--gold)}
 #toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:9px 16px;border-radius:8px;display:none;z-index:9}#toast.bad{background:var(--r)}
+textarea.de{width:100%;font:inherit;padding:4px;border:0;resize:none;overflow:hidden;background:transparent;color:var(--t);min-width:130px;display:block;line-height:1.3}
+#ld{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:20}#ld.on{display:flex}#ld i{width:46px;height:46px;border:5px solid #fff;border-top-color:var(--gold);border-radius:50%;animation:sp .8s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+#sg{position:fixed;display:none;background:var(--c);border:1px solid var(--g);border-radius:8px;max-height:220px;overflow:auto;z-index:15;box-shadow:0 4px 14px rgba(0,0,0,.25)}#sg div{padding:8px 10px;display:flex;justify-content:space-between;gap:14px;cursor:pointer}#sg div:hover{background:var(--bg)}
 [hidden]{display:none!important}.err{color:var(--r);min-height:18px}.m{color:var(--m);font-size:13px}
 </style></head><body>
 
@@ -38,7 +41,7 @@ td.n,th.n{text-align:right}td input{border:0;padding:4px;min-width:60px}td.am{te
 
 <div id="app" hidden>
 <div class="card bar"><div><h2 id="coName"></h2><div class="m" id="coWho"></div></div><div class="sp"></div>
-<select id="coSel" hidden></select><button class="s" id="refresh">Refresh</button><button class="s" id="logout">Logout</button></div>
+<select id="coSel" hidden></select><select id="pf" title="Print size"><option value="A4">A4</option><option value="80">POS 80mm</option><option value="58">POS 58mm</option></select><button class="s" id="btBtn">Bluetooth Printer</button><button class="s" id="refresh">Refresh</button><button class="s" id="logout">Logout</button></div>
 <div class="tabs" id="tabs"><button data-t="memo" class="on">Create Memo</button><button data-t="data">Saved Data</button><button data-t="sum">Summary</button><button data-t="send">Send to Head Office</button></div>
 
 <div class="card" id="t_memo">
@@ -51,7 +54,7 @@ td.n,th.n{text-align:right}td input{border:0;padding:4px;min-width:60px}td.am{te
 <div class="w"><table><thead><tr><th>SL. No.</th><th>Description</th><th class="n">Qty</th><th class="n">Rate</th><th class="n">Amount</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
 <div class="bar"><button class="s" id="addRow">+ Add Row</button></div>
 <div class="foot"><div>In Word: <b id="words"></b></div><div>Total: <b id="total">0.00</b></div></div>
-<div class="bar"><button id="saveBtn">Save</button><button id="savePrint" class="s">Save &amp; Print</button><button id="newBtn" class="s">New / Clear</button></div>
+<div class="bar"><button id="saveBtn">Save</button><button id="savePrint" class="s">Save &amp; Print / PDF</button><button id="newBtn" class="s">New / Clear</button></div>
 <datalist id="foodList"></datalist></div>
 
 <div class="card" id="t_data" hidden>
@@ -59,11 +62,11 @@ td.n,th.n{text-align:right}td input{border:0;padding:4px;min-width:60px}td.am{te
 <label>Type<select id="dPay"><option>All</option><option>Cash</option><option>Bkash</option><option>Due</option></select></label>
 <label>Search<input id="dQ" placeholder="invoice / name"></label></div>
 <div class="w"><table><thead><tr><th>Invoice</th><th>Date</th><th>Name</th><th>Type</th><th class="n">Total</th><th>Status</th><th></th></tr></thead><tbody id="dTb"></tbody></table></div>
-<div class="tot" id="dTot"></div></div>
+<div class="tot" id="dTot"></div><div class="m" style="margin-top:8px">PDF: tap PDF / Print, then choose Save as PDF in the print window. POS paper: pick POS 80mm / 58mm at the top.</div></div>
 
 <div class="card" id="t_sum" hidden>
 <div class="bar"><label>From<input type="date" id="sFrom"></label><label>To<input type="date" id="sTo"></label>
-<label>Show<select id="sPay"><option>All</option><option>Cash</option><option>Due</option><option>Bkash</option></select></label><button class="s" id="sPrint">Print</button></div>
+<label>Show<select id="sPay"><option>All</option><option>Cash</option><option>Due</option><option>Bkash</option></select></label><button class="s" id="sPrint">PDF / Print</button></div>
 <div id="sOut"></div></div>
 
 <div class="card" id="t_send" hidden>
@@ -71,10 +74,11 @@ td.n,th.n{text-align:right}td input{border:0;padding:4px;min-width:60px}td.am{te
 <div class="m">Cash, Due and Bkash go as three segments. Edit bills in Saved Data before sending.</div>
 <div id="xOut"></div></div>
 </div>
-<div id="toast"></div>
+<div id="ld"><i></i></div><div id="sg"></div><div id="toast"></div>
 
 <script>
 "use strict";
+var _f=window.fetch.bind(window),_n=0;window.fetch=function(){_n++;$("ld").classList.add("on");return _f.apply(null,arguments).finally(function(){if(--_n<=0){_n=0;$("ld").classList.remove("on")}})};
 var S={url:"https://script.google.com/macros/s/AKfycbzXdPj9rmo5uDBMldrlNMgFnkVNLH_2HwQJ8kTLYvub3mL1MAcLGMU8DnuWi75WK_810A/exec",uid:"",pw:"",name:"",cid:"",cos:[],co:{},bills:[],foods:[],sends:[],edit:null,mode:"login"};
 var $=function(i){return document.getElementById(i)};
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
@@ -142,7 +146,20 @@ async function loadAll(msg){
 $("tabs").onclick=function(e){var t=e.target.dataset.t;if(!t)return;
   document.querySelectorAll("#tabs button").forEach(function(b){b.className=b.dataset.t===t?"on":""});
   ["memo","data","sum","send"].forEach(function(n){$("t_"+n).hidden=n!==t});
-  if(t==="data")renderData();if(t==="sum")renderSum();if(t==="send")renderSend()};
+  document.querySelectorAll("#tb .de").forEach(grow);if(t==="data")renderData();if(t==="sum")renderSum();if(t==="send")renderSend()};
+
+/* ---------- auto-height description + suggestions ---------- */
+function grow(t){t.style.height="auto";if(t.scrollHeight)t.style.height=t.scrollHeight+"px"}
+function sugg(t){var q=t.value.trim().toLowerCase(),sg=$("sg");
+  var l=S.foods.filter(function(f){return !q||f.name.toLowerCase().indexOf(q)>=0}).sort(function(a,b){return a.name.toLowerCase().indexOf(q)-b.name.toLowerCase().indexOf(q)}).slice(0,8);
+  if(!l.length||(l.length===1&&l[0].name.toLowerCase()===q)){sg.style.display="none";return}
+  var r=t.getBoundingClientRect();sg.style.left=Math.min(r.left,Math.max(0,innerWidth-250))+"px";sg.style.top=(r.bottom+2)+"px";sg.style.minWidth=Math.max(r.width,230)+"px";sg.style.display="block";
+  sg.innerHTML=l.map(function(f,i){return'<div data-i="'+i+'">'+esc(f.name)+"<b>"+f.rate+"</b></div>"}).join("");sg._l=l;sg._t=t}
+$("sg").onmousedown=function(e){e.preventDefault();var d=e.target.closest("div[data-i]");if(!d)return;var f=this._l[d.dataset.i],t=this._t,tr=t.closest("tr");
+  t.value=f.name;grow(t);var rt=tr.querySelector(".rt");rt.value=f.rate;rt.dataset.auto="1";var q=tr.querySelector(".qt");if(!q.value)q.value=1;this.style.display="none";calc();q.focus()};
+document.addEventListener("focusin",function(e){if(e.target.classList&&e.target.classList.contains("de"))sugg(e.target)});
+document.addEventListener("focusout",function(e){if(e.target.classList&&e.target.classList.contains("de"))setTimeout(function(){$("sg").style.display="none"},150)});
+window.addEventListener("scroll",function(){$("sg").style.display="none"},true);
 
 /* ---------- memo form ---------- */
 function pay(){return document.querySelector("input[name=pt]:checked").value}
@@ -154,15 +171,16 @@ function nextInv(d){
   return pre+(mx+1<10?"0":"")+(mx+1)}
 function addRow(it){
   var tr=document.createElement("tr");
-  tr.innerHTML='<td class="sl"></td><td><input class="de" list="foodList" placeholder="Food name"></td><td><input class="qt n" type="number" min="0" step="any" inputmode="decimal"></td><td><input class="rt n" type="number" min="0" step="any" inputmode="decimal"></td><td class="am">0.00</td><td><button class="l" title="Remove">&#10005;</button></td>';
+  tr.innerHTML='<td class="sl"></td><td><textarea class="de" rows="1" placeholder="Food name"></textarea></td><td><input class="qt n" type="number" min="0" step="any" inputmode="decimal"></td><td><input class="rt n" type="number" min="0" step="any" inputmode="decimal"></td><td class="am">0.00</td><td><button class="l" title="Remove">&#10005;</button></td>';
   $("tb").appendChild(tr);
-  if(it){tr.querySelector(".de").value=it.name;tr.querySelector(".qt").value=it.qty;tr.querySelector(".rt").value=it.rate}
+  if(it){tr.querySelector(".de").value=it.name;tr.querySelector(".qt").value=it.qty;tr.querySelector(".rt").value=it.rate;grow(tr.querySelector(".de"))}
   tr.querySelector("button").onclick=function(){if($("tb").children.length>1){tr.remove();calc()}else{tr.querySelectorAll("input").forEach(function(i){i.value=""});calc()}};
+  tr.querySelector(".de").onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();tr.querySelector(".qt").focus()}};
   tr.querySelector(".rt").onkeydown=function(e){if(e.key==="Enter"&&tr===$("tb").lastChild){addRow();$("tb").lastChild.querySelector(".de").focus()}};
   calc()}
 $("addRow").onclick=function(){addRow();$("tb").lastChild.querySelector(".de").focus()};
 $("tb").oninput=function(e){
-  var tr=e.target.closest("tr");
+  var tr=e.target.closest("tr");if(e.target.classList.contains("de")){grow(e.target);sugg(e.target)}
   if(e.target.classList.contains("de")){
     var nm=e.target.value.trim().toLowerCase(),f=S.foods.filter(function(x){return x.name.toLowerCase()===nm})[0],rt=tr.querySelector(".rt");
     if(f&&(rt.value===""||rt.dataset.auto)){rt.value=f.rate;rt.dataset.auto="1";if(!tr.querySelector(".qt").value)tr.querySelector(".qt").value=1}}
@@ -198,7 +216,7 @@ function renderData(){
   var q=$("dQ").value.trim().toLowerCase(),py=$("dPay").value;
   var l=S.bills.filter(function(b){return inRange(b,$("dFrom").value,$("dTo").value)&&(py==="All"||b.pay_type===py)&&(!q||(b.invoice_no+" "+b.name+" "+b.reference+" "+b.mobile).toLowerCase().indexOf(q)>=0)});
   $("dTb").innerHTML=l.map(function(b){var ed=b.status==="Saved"||b.status==="Rejected";
-    return"<tr><td>"+esc(b.invoice_no)+"</td><td>"+fd(b.date)+"</td><td>"+esc(b.pay_type==="Due"?b.reference:b.name)+"</td><td>"+b.pay_type+'</td><td class="n">'+money(b.total)+'</td><td><span class="st '+b.status+'" title="'+esc(b.reject_reason)+'">'+b.status+"</span></td><td style=\"white-space:nowrap\"><button class=\"l\" data-a=\"p\" data-k=\""+b.key+"\">Print</button>"+(ed?'<button class="l" data-a="e" data-k="'+b.key+'">Edit</button><button class="l" data-a="d" data-k="'+b.key+'">Delete</button>':"")+"</td></tr>"}).join("")||'<tr><td colspan="7" class="m">No bills.</td></tr>';
+    return"<tr><td>"+esc(b.invoice_no)+"</td><td>"+fd(b.date)+"</td><td>"+esc(b.pay_type==="Due"?b.reference:b.name)+"</td><td>"+b.pay_type+'</td><td class="n">'+money(b.total)+'</td><td><span class="st '+b.status+'" title="'+esc(b.reject_reason)+'">'+b.status+"</span></td><td style=\"white-space:nowrap\"><button class=\"l\" data-a=\"p\" data-k=\""+b.key+"\">PDF / Print</button>"+(ed?'<button class="l" data-a="e" data-k="'+b.key+'">Edit</button><button class="l" data-a="d" data-k="'+b.key+'">Delete</button>':"")+"</td></tr>"}).join("")||'<tr><td colspan="7" class="m">No bills.</td></tr>';
   $("dTot").innerHTML=totals(l)}
 $("dTb").onclick=async function(e){var a=e.target.dataset.a;if(!a)return;var b=S.bills.filter(function(x){return x.key===e.target.dataset.k})[0];if(!b)return;
   if(a==="p")printBill(b);
@@ -220,7 +238,7 @@ function sumHtml(){
     due.map(function(b){return"<tr><td>"+esc(b.invoice_no)+"</td><td>"+esc(b.reference)+"</td><td>"+esc(b.ordered_by)+'</td><td class="n">'+money(b.total)+"</td></tr>"}).join("")+"</tbody></table></div>";
   return h+'<div class="tot">'+totals(s.list)+"</div>"}
 function renderSum(){$("sOut").innerHTML=sumHtml()}
-$("sPrint").onclick=function(){printHtml("<h2>"+esc(S.co.name)+"</h2><div class=c>"+esc(S.co.address)+"</div><h3>Sales Summary: "+$("sPay").value+" ("+fd($("sFrom").value)+" to "+fd($("sTo").value)+")</h3>"+sumHtml())};
+$("sPrint").onclick=function(){if(BT&&$("pf").value!=="A4")return btSend(sumLines()).then(function(){toast("Sent to printer")}).catch(function(e){toast(e.message,true)});printHtml("<h2>"+esc(S.co.name)+"</h2><div class=c>"+esc(S.co.address)+"</div><h3>Sales Summary: "+$("sPay").value+" ("+fd($("sFrom").value)+" to "+fd($("sTo").value)+")</h3>"+sumHtml())};
 
 /* ---------- send ---------- */
 function renderSend(){
@@ -233,13 +251,43 @@ $("xBtn").onclick=async function(){var d=$("xDate").value;if(!confirm("Send all 
   var j=await call({action:"r_send",date:d});if(!j)return;
   toast(j.results.map(function(r){return r.segment+": "+(r.ok?"sent":r.error)}).join(" | "));loadAll()};
 
-/* ---------- print (A4) ---------- */
+/* ---------- Bluetooth POS printer (ESC/POS) ---------- */
+var BT=null;
+$("btBtn").onclick=async function(){
+  if(!navigator.bluetooth)return toast("Bluetooth printing needs Chrome on Android, on an https page.",true);
+  try{var d=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:["000018f0-0000-1000-8000-00805f9b34fb","49535343-fe7d-4ae5-8fa9-9fafd205e455","e7810a71-73ae-499d-8c15-faa9aef0c3f2","0000ffe0-0000-1000-8000-00805f9b34fb","0000fff0-0000-1000-8000-00805f9b34fb"]});
+    var g=await d.gatt.connect(),svs=await g.getPrimaryServices(),ch=null;
+    for(var s of svs){var cs=await s.getCharacteristics();for(var c of cs){if(c.properties.write||c.properties.writeWithoutResponse){ch=c;break}}if(ch)break}
+    if(!ch)throw new Error("No writable printer channel found.");
+    BT={ch:ch};$("btBtn").textContent="Printer: "+(d.name||"connected");if($("pf").value==="A4")$("pf").value="80";toast("Printer connected")}
+  catch(e){toast(e.message,true)}};
+function ascii(s){return String(s==null?"":s).replace(/[^\x20-\x7E]/g,"?")}
+function cw(){return $("pf").value==="58"?32:48}
+function pad(a,b,w){a=ascii(a);b=String(b);return a.length+b.length>=w?a.slice(0,Math.max(0,w-b.length-1))+" "+b:a+" ".repeat(w-a.length-b.length)+b}
+async function btSend(lines){
+  var enc=new TextEncoder(),parts=[new Uint8Array([27,64])];
+  lines.forEach(function(l){parts.push(enc.encode(ascii(l)+"\n"))});parts.push(new Uint8Array([10,10,10,29,86,66,0]));
+  var all=new Uint8Array(parts.reduce(function(n,p){return n+p.length},0)),o=0;parts.forEach(function(p){all.set(p,o);o+=p.length});
+  for(var i=0;i<all.length;i+=100){var c=all.slice(i,i+100);if(BT.ch.properties.writeWithoutResponse)await BT.ch.writeValueWithoutResponse(c);else await BT.ch.writeValue(c);await new Promise(function(r){setTimeout(r,40)})}}
+function billLines(b){var w=cw(),ln="-".repeat(w),l=[S.co.name,S.co.address||"","MEMO / INVOICE",ln,"Inv: "+b.invoice_no,"Date: "+fd(b.date)];
+  if(b.name)l.push("Name: "+b.name);if(b.mobile)l.push("Mobile: "+b.mobile);l.push("Pay: "+b.pay_type+(b.pay_type==="Due"?" / "+b.reference+" / "+b.ordered_by:""),ln);
+  b.items.forEach(function(it){l.push(it.name);l.push(pad("  "+it.qty+" x "+money(it.rate),money(it.amount),w))});
+  l.push(ln,pad("TOTAL",money(b.total),w),words(b.total),"","Thank you");return l}
+function sumLines(){var w=cw(),s=summary($("sFrom").value,$("sTo").value,$("sPay").value),a=0,t={Cash:0,Bkash:0,Due:0},
+  l=[S.co.name,"SALES SUMMARY "+$("sPay").value,fd($("sFrom").value)+" to "+fd($("sTo").value),"-".repeat(w)];
+  s.items.forEach(function(g){a+=g.amt;l.push(g.name);l.push(pad("  "+r2(g.qty)+" x "+money(g.qty?g.amt/g.qty:0),money(g.amt),w))});
+  s.list.forEach(function(b){t[b.pay_type]+=b.total});
+  l.push("-".repeat(w),pad("Cash",money(t.Cash),w),pad("Bkash",money(t.Bkash),w),pad("Due",money(t.Due),w),pad("TOTAL",money(a),w));return l}
+function pageCss(){var f=$("pf").value;return f==="A4"?"@page{size:A4;margin:12mm}"+"body{font:14px Arial,sans-serif;color:#000}":"@page{size:"+f+"mm auto;margin:2mm}body{width:"+(f-6)+"mm;font:12px Arial,sans-serif;color:#000}th,td{padding:2px 3px!important}.sg{margin-top:30px!important}"}
+
+/* ---------- print (A4 / POS / PDF) ---------- */
 function printHtml(body){
   var f=document.createElement("iframe");f.style.cssText="position:fixed;width:0;height:0;border:0";document.body.appendChild(f);
   var d=f.contentWindow.document;d.open();
-  d.write('<html><head><meta charset="utf-8"><title>Print</title><style>@page{size:A4;margin:12mm}body{font:14px Arial,sans-serif;color:#000}h2,h3,.c{text-align:center;margin:3px 0}table{border-collapse:collapse;width:100%;margin:8px 0}th,td{border:1px solid #000;padding:5px 7px;text-align:left}.n{text-align:right}.tot{display:flex;gap:14px;margin-top:10px}.tot div{border:1px solid #000;padding:6px 12px}.tot b{display:block}.h{display:flex;justify-content:space-between;margin:6px 0}.sg{display:flex;justify-content:space-between;margin-top:60px}</style></head><body>'+body+"</body></html>");
+  d.write('<html><head><meta charset="utf-8"><title>Print</title><style>'+pageCss()+'h2,h3,.c{text-align:center;margin:3px 0}table{border-collapse:collapse;width:100%;margin:8px 0}th,td{border:1px solid #000;padding:5px 7px;text-align:left}.n{text-align:right}.tot{display:flex;gap:14px;margin-top:10px}.tot div{border:1px solid #000;padding:6px 12px}.tot b{display:block}.h{display:flex;justify-content:space-between;margin:6px 0}.sg{display:flex;justify-content:space-between;margin-top:60px}</style></head><body>'+body+"</body></html>");
   d.close();f.onload=function(){};setTimeout(function(){f.contentWindow.focus();f.contentWindow.print();setTimeout(function(){f.remove()},2000)},300)}
 function printBill(b){
+  if(BT&&$("pf").value!=="A4"){btSend(billLines(b)).then(function(){toast("Sent to printer")}).catch(function(e){toast(e.message,true)});return}
   var h="<h2>"+esc(S.co.name)+"</h2><div class=c>"+esc(S.co.address)+"</div><h3>MEMO / INVOICE</h3>"+
    '<div class="h"><div>Invoice No: <b>'+esc(b.invoice_no)+"</b></div><div>Date: <b>"+fd(b.date)+"</b></div></div>"+
    "<div>Name: "+esc(b.name)+"</div><div>Address: "+esc(b.address)+"</div><div>Mobile: "+esc(b.mobile)+"</div><div>Payment: <b>"+b.pay_type+"</b>"+
