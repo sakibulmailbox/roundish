@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Restaurant Bill</title>
+<style>
+:root{--bg:#f3f6f4;--c:#fff;--t:#16241c;--m:#5d6b63;--g:#1f7a4d;--gd:#16603c;--gold:#c9a227;--b:#d5ddd8;--r:#b3261e}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1b15;--c:#17261e;--t:#e6efe9;--m:#9bb0a4;--g:#2fa56b;--gd:#238553;--b:#2c4036;--r:#ff8a80}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:15px/1.4 system-ui,"Noto Sans Bengali",Arial,sans-serif}
+.card{background:var(--c);border:1px solid var(--b);border-radius:10px;padding:14px;margin:10px auto;max-width:1000px}
+#login{max-width:380px;margin-top:8vh}h1,h2{margin:0 0 8px;color:var(--g)}h1{font-size:22px}h2{font-size:17px}
+input,select,button{font:inherit;padding:8px;border:1px solid var(--b);border-radius:7px;background:var(--c);color:var(--t);max-width:100%}
+input,select{width:100%}button{cursor:pointer;background:var(--g);color:#fff;border:0;padding:8px 14px}button:hover{background:var(--gd)}
+button.s{background:transparent;color:var(--g);border:1px solid var(--g)}button.d{background:var(--r)}button.l{background:none;color:var(--g);padding:4px}
+label{display:block;font-size:13px;color:var(--m)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-bottom:10px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}.bar>*{width:auto}.sp{flex:1}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;max-width:1000px;margin:8px auto}.tabs button{background:var(--c);color:var(--g);border:1px solid var(--g)}.tabs button.on{background:var(--g);color:#fff}
+.w{overflow-x:auto}table{border-collapse:collapse;width:100%}th,td{border:1px solid var(--b);padding:5px 7px;text-align:left}th{background:var(--g);color:#fff}
+td.n,th.n{text-align:right}td input{border:0;padding:4px;min-width:60px}td.am{text-align:right;font-weight:600}
+.pay label{display:inline-block;margin-right:14px;color:var(--t);font-size:15px}.pay input{width:auto}
+.foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0;font-size:16px}.foot b{color:var(--g)}
+.tot{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:10px}.tot div{border:1px solid var(--gold);border-radius:8px;padding:8px;text-align:center}.tot b{display:block;font-size:18px}
+.st{font-size:12px;padding:2px 7px;border-radius:9px;border:1px solid var(--b)}.Accepted{color:var(--g)}.Rejected{color:var(--r)}.Sent{color:var(--gold)}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:9px 16px;border-radius:8px;display:none;z-index:9}#toast.bad{background:var(--r)}
+[hidden]{display:none!important}.err{color:var(--r);min-height:18px}.m{color:var(--m);font-size:13px}
+</style></head><body>
+
+<div id="login" class="card">
+<h1>Restaurant Bill</h1><div class="m" id="lMode">Login</div>
+<div class="grid" style="grid-template-columns:1fr">
+<label>User ID<input id="lUid" autocomplete="username"></label>
+<label>Password<input id="lPw" type="password" autocomplete="current-password"></label>
+<label class="rg" hidden>Name<input id="lName"></label>
+<label class="rg fg" hidden>Mobile Number<input id="lMob" inputmode="tel"></label>
+<label class="fg" hidden>New Password<input id="lNew" type="password"></label>
+<label><span class="m">Script URL (change only if told)</span><input id="lUrl"></label></div>
+<div class="err" id="lErr"></div>
+<div class="bar"><button id="lBtn">Login</button><button class="l" id="lReg">Register</button><button class="l" id="lFor">Forgot password</button></div></div>
+
+<div id="app" hidden>
+<div class="card bar"><div><h2 id="coName"></h2><div class="m" id="coWho"></div></div><div class="sp"></div>
+<select id="coSel" hidden></select><button class="s" id="refresh">Refresh</button><button class="s" id="logout">Logout</button></div>
+<div class="tabs" id="tabs"><button data-t="memo" class="on">Create Memo</button><button data-t="data">Saved Data</button><button data-t="sum">Summary</button><button data-t="send">Send to Head Office</button></div>
+
+<div class="card" id="t_memo">
+<div class="grid">
+<label>Date<input type="date" id="fDate"></label><label>Invoice No<input id="fInv" readonly></label>
+<label>Name<input id="fName"></label><label>Address<input id="fAddr"></label><label>Mobile Number<input id="fMob" inputmode="tel"></label></div>
+<div class="pay">Payment Type: <label><input type="radio" name="pt" value="Cash" checked> Cash</label><label><input type="radio" name="pt" value="Bkash"> Bkash</label><label><input type="radio" name="pt" value="Due"> Due</label></div>
+<div class="grid" style="margin-top:8px"><label id="wTrx" hidden>Bkash Trx No (optional)<input id="fTrx"></label>
+<label id="wRef" hidden>Name / Reference<input id="fRef"></label><label id="wOb" hidden>Ordered By<input id="fOb"></label></div>
+<div class="w"><table><thead><tr><th>SL. No.</th><th>Description</th><th class="n">Qty</th><th class="n">Rate</th><th class="n">Amount</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
+<div class="bar"><button class="s" id="addRow">+ Add Row</button></div>
+<div class="foot"><div>In Word: <b id="words"></b></div><div>Total: <b id="total">0.00</b></div></div>
+<div class="bar"><button id="saveBtn">Save</button><button id="savePrint" class="s">Save &amp; Print</button><button id="newBtn" class="s">New / Clear</button></div>
+<datalist id="foodList"></datalist></div>
+
+<div class="card" id="t_data" hidden>
+<div class="bar"><label>From<input type="date" id="dFrom"></label><label>To<input type="date" id="dTo"></label>
+<label>Type<select id="dPay"><option>All</option><option>Cash</option><option>Bkash</option><option>Due</option></select></label>
+<label>Search<input id="dQ" placeholder="invoice / name"></label></div>
+<div class="w"><table><thead><tr><th>Invoice</th><th>Date</th><th>Name</th><th>Type</th><th class="n">Total</th><th>Status</th><th></th></tr></thead><tbody id="dTb"></tbody></table></div>
+<div class="tot" id="dTot"></div></div>
+
+<div class="card" id="t_sum" hidden>
+<div class="bar"><label>From<input type="date" id="sFrom"></label><label>To<input type="date" id="sTo"></label>
+<label>Show<select id="sPay"><option>All</option><option>Cash</option><option>Due</option><option>Bkash</option></select></label><button class="s" id="sPrint">Print</button></div>
+<div id="sOut"></div></div>
+
+<div class="card" id="t_send" hidden>
+<div class="bar"><label>Date<input type="date" id="xDate"></label><button id="xBtn">Send to Head Office</button></div>
+<div class="m">Cash, Due and Bkash go as three segments. Edit bills in Saved Data before sending.</div>
+<div id="xOut"></div></div>
+</div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+var S={url:"https://script.google.com/macros/s/AKfycbzXdPj9rmo5uDBMldrlNMgFnkVNLH_2HwQJ8kTLYvub3mL1MAcLGMU8DnuWi75WK_810A/exec",uid:"",pw:"",name:"",cid:"",cos:[],co:{},bills:[],foods:[],sends:[],edit:null,mode:"login"};
+var $=function(i){return document.getElementById(i)};
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function num(v){return Number(v)||0}function r2(n){return Math.round(num(n)*100)/100}
+function money(n){return num(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}
+function fd(d){return String(d||"").split("-").reverse().join("-")}
+function today(){return new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10)}
+function toast(m,bad){var t=$("toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none"},3000)}
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k)||"";localStorage.setItem(k,v)}catch(e){return ""}}
+
+async function api(o){
+  var b=new URLSearchParams(o);b.append("user_id",S.uid);b.append("password",S.pw);if(S.cid)b.append("company_id",S.cid);
+  var r=await fetch(S.url,{method:"POST",body:b}),t=await r.text(),j;
+  try{j=JSON.parse(t)}catch(e){throw new Error("Server did not return JSON. Check the Script URL (Web App, access: Anyone).")}
+  return j}
+async function call(o){try{var j=await api(o);if(j.status==="error"){toast(j.message||"Failed",true);return null}return j}catch(e){toast(e.message,true);return null}}
+
+/* ---------- words ---------- */
+function words(v){
+  var n=Math.round(num(v)*100),t=Math.floor(n/100),p=n%100;
+  var o="One Two Three Four Five Six Seven Eight Nine Ten Eleven Twelve Thirteen Fourteen Fifteen Sixteen Seventeen Eighteen Nineteen".split(" "),
+      tn="Twenty Thirty Forty Fifty Sixty Seventy Eighty Ninety".split(" ");
+  function b100(x){return x<20?o[x-1]:tn[Math.floor(x/10)-2]+(x%10?" "+o[x%10-1]:"")}
+  function b1k(x){return(x>=100?o[Math.floor(x/100)-1]+" Hundred"+(x%100?" ":""):"")+(x%100?b100(x%100):"")}
+  var a=[],c=Math.floor(t/1e7),l=Math.floor(t%1e7/1e5),th=Math.floor(t%1e5/1e3),rest=t%1e3;
+  if(c)a.push(b1k(c)+" Crore");if(l)a.push(b100(l)+" Lakh");if(th)a.push(b100(th)+" Thousand");if(rest)a.push(b1k(rest));
+  var s=a.length?a.join(" "):(p?"":"Zero");
+  if(p)s+=(s?" and ":"")+b100(p)+" Paisa";else s+=" Taka";
+  if(p&&t)s=a.join(" ")+" Taka and "+b100(p)+" Paisa";
+  return s.trim()+" Only"}
+
+/* ---------- login ---------- */
+$("lUrl").value=store("rb_url")||S.url;$("lUid").value=store("rb_uid");
+function setMode(m){S.mode=m;$("lMode").textContent={login:"Login",reg:"Register (Admin will approve)",fg:"Reset password"}[m];
+  document.querySelectorAll(".rg").forEach(function(e){e.hidden=m==="login"||m==="fg"});
+  document.querySelectorAll(".fg").forEach(function(e){e.hidden=m!=="fg"});
+  $("lMob").parentNode.hidden=m==="login";$("lBtn").textContent={login:"Login",reg:"Send Request",fg:"Reset"}[m];$("lErr").textContent=""}
+$("lReg").onclick=function(){setMode(S.mode==="reg"?"login":"reg")};$("lFor").onclick=function(){setMode(S.mode==="fg"?"login":"fg")};setMode("login");
+$("lBtn").onclick=doLogin;["lUid","lPw"].forEach(function(i){$(i).onkeydown=function(e){if(e.key==="Enter")doLogin()}});
+async function doLogin(){
+  var u=$("lUid").value.trim(),pw=$("lPw").value;$("lErr").textContent="";S.url=$("lUrl").value.trim();
+  try{
+    var j;
+    if(S.mode==="reg"){j=await api2({action:"register",user_id:u,password:pw,name:$("lName").value,mobile:$("lMob").value});$("lErr").textContent=j.message||"";return}
+    if(S.mode==="fg"){j=await api2({action:"forget",user_id:u,mobile:$("lMob").value,new_password:$("lNew").value});$("lErr").textContent=j.message||"";return}
+    j=await api2({action:"b_login",user_id:u,password:pw});
+    if(j.status==="pending"||j.status==="error"){$("lErr").textContent=j.message;return}
+    if(!j.companies||!j.companies.length){$("lErr").textContent=j.message||"No company assigned.";return}
+    S.uid=u;S.pw=pw;S.name=j.name||u;S.cos=j.companies;store("rb_url",S.url);store("rb_uid",u);
+    var last=store("rb_cid");S.cid=(S.cos.filter(function(c){return c.id===last})[0]||S.cos[0]).id;
+    $("login").hidden=true;$("app").hidden=false;$("coWho").textContent=S.name;
+    var sel=$("coSel");sel.innerHTML=S.cos.map(function(c){return'<option value="'+esc(c.id)+'">'+esc(c.name)+"</option>"}).join("");sel.value=S.cid;sel.hidden=S.cos.length<2;
+    await loadAll();initForm()
+  }catch(e){$("lErr").textContent=e.message}}
+async function api2(o){var b=new URLSearchParams(o),r=await fetch(S.url,{method:"POST",body:b}),t=await r.text();try{return JSON.parse(t)}catch(e){throw new Error("Server did not return JSON. Check the Script URL.")}}
+$("coSel").onchange=async function(){S.cid=this.value;store("rb_cid",S.cid);await loadAll();initForm()};
+$("logout").onclick=function(){S.pw="";location.reload()};$("refresh").onclick=function(){loadAll(true)};
+async function loadAll(msg){
+  var j=await call({action:"r_list"});if(!j)return;
+  S.bills=j.bills;S.foods=j.foods;S.sends=j.sends;S.co=j.company;$("coName").textContent=S.co.name;
+  $("foodList").innerHTML=S.foods.map(function(f){return'<option value="'+esc(f.name)+'" label="Tk '+f.rate+'">'}).join("");
+  renderData();renderSum();renderSend();if(msg)toast("Refreshed")}
+
+/* ---------- tabs ---------- */
+$("tabs").onclick=function(e){var t=e.target.dataset.t;if(!t)return;
+  document.querySelectorAll("#tabs button").forEach(function(b){b.className=b.dataset.t===t?"on":""});
+  ["memo","data","sum","send"].forEach(function(n){$("t_"+n).hidden=n!==t});
+  if(t==="data")renderData();if(t==="sum")renderSum();if(t==="send")renderSend()};
+
+/* ---------- memo form ---------- */
+function pay(){return document.querySelector("input[name=pt]:checked").value}
+function togglePay(){var p=pay();$("wTrx").hidden=p!=="Bkash";$("wRef").hidden=p!=="Due";$("wOb").hidden=p!=="Due"}
+document.querySelectorAll("input[name=pt]").forEach(function(r){r.onchange=togglePay});
+function nextInv(d){
+  var code=(S.co.short_code||"RD").toUpperCase(),pre="INV-"+code+"-"+d.slice(5,7)+"/"+d.slice(2,4)+"-",mx=0;
+  S.bills.forEach(function(b){if(b.invoice_no.indexOf(pre)===0){var n=parseInt(b.invoice_no.slice(pre.length),10);if(n>mx)mx=n}});
+  return pre+(mx+1<10?"0":"")+(mx+1)}
+function addRow(it){
+  var tr=document.createElement("tr");
+  tr.innerHTML='<td class="sl"></td><td><input class="de" list="foodList" placeholder="Food name"></td><td><input class="qt n" type="number" min="0" step="any" inputmode="decimal"></td><td><input class="rt n" type="number" min="0" step="any" inputmode="decimal"></td><td class="am">0.00</td><td><button class="l" title="Remove">&#10005;</button></td>';
+  $("tb").appendChild(tr);
+  if(it){tr.querySelector(".de").value=it.name;tr.querySelector(".qt").value=it.qty;tr.querySelector(".rt").value=it.rate}
+  tr.querySelector("button").onclick=function(){if($("tb").children.length>1){tr.remove();calc()}else{tr.querySelectorAll("input").forEach(function(i){i.value=""});calc()}};
+  tr.querySelector(".rt").onkeydown=function(e){if(e.key==="Enter"&&tr===$("tb").lastChild){addRow();$("tb").lastChild.querySelector(".de").focus()}};
+  calc()}
+$("addRow").onclick=function(){addRow();$("tb").lastChild.querySelector(".de").focus()};
+$("tb").oninput=function(e){
+  var tr=e.target.closest("tr");
+  if(e.target.classList.contains("de")){
+    var nm=e.target.value.trim().toLowerCase(),f=S.foods.filter(function(x){return x.name.toLowerCase()===nm})[0],rt=tr.querySelector(".rt");
+    if(f&&(rt.value===""||rt.dataset.auto)){rt.value=f.rate;rt.dataset.auto="1";if(!tr.querySelector(".qt").value)tr.querySelector(".qt").value=1}}
+  else if(e.target.classList.contains("rt"))delete e.target.dataset.auto;
+  calc()};
+function rows(){return Array.prototype.map.call($("tb").children,function(tr){return{name:tr.querySelector(".de").value.trim(),qty:tr.querySelector(".qt").value,rate:tr.querySelector(".rt").value,tr:tr}})}
+function calc(){var t=0;rows().forEach(function(r,i){var a=r2(num(r.qty)*num(r.rate));t+=a;r.tr.querySelector(".sl").textContent=i+1;r.tr.querySelector(".am").textContent=money(a)});
+  t=r2(t);$("total").textContent=money(t);$("words").textContent=t>0?words(t):""}
+function initForm(b){
+  S.edit=b?b.key:null;$("fDate").value=b?b.date:today();$("fName").value=b?b.name:"";$("fAddr").value=b?b.address:"";$("fMob").value=b?b.mobile:"";
+  $("fTrx").value=b?b.trx:"";$("fRef").value=b?b.reference:"";$("fOb").value=b?b.ordered_by:"";
+  document.querySelector("input[name=pt][value="+(b?b.pay_type:"Cash")+"]").checked=true;togglePay();
+  $("tb").innerHTML="";(b?b.items:[{}]).forEach(function(it){addRow(it.name?it:null)});
+  $("fInv").value=b?b.invoice_no:nextInv($("fDate").value)}
+$("fDate").onchange=function(){if(!S.edit)$("fInv").value=nextInv(this.value)};
+$("newBtn").onclick=function(){initForm()};
+async function save(print){
+  var p=pay(),items=rows().filter(function(r){return r.name||r.qty||r.rate}).map(function(r){return{name:r.name,qty:r.qty,rate:r.rate}});
+  var bill={key:S.edit||"",date:$("fDate").value,name:$("fName").value,address:$("fAddr").value,mobile:$("fMob").value,pay_type:p,
+    trx:$("fTrx").value,reference:$("fRef").value,ordered_by:$("fOb").value,items:items};
+  var j=await call({action:"r_save",bill:JSON.stringify(bill)});if(!j)return;
+  toast("Saved "+j.bill.invoice_no);if(print)printBill(j.bill);
+  await loadAll();initForm()}
+$("saveBtn").onclick=function(){save(false)};$("savePrint").onclick=function(){save(true)};
+
+/* ---------- saved data ---------- */
+function inRange(b,f,t){return(!f||b.date>=f)&&(!t||b.date<=t)}
+function totals(list){var t={Cash:0,Bkash:0,Due:0};list.forEach(function(b){t[b.pay_type]=r2((t[b.pay_type]||0)+b.total)});
+  return'<div>Cash<b>'+money(t.Cash)+'</b></div><div>Bkash<b>'+money(t.Bkash)+'</b></div><div>Due<b>'+money(t.Due)+'</b></div><div>Total<b>'+money(t.Cash+t.Bkash+t.Due)+'</b></div>'}
+["dFrom","dTo"].forEach(function(i){$(i).value=today()});["sFrom","sTo","xDate"].forEach(function(i){$(i).value=today()});
+["dFrom","dTo","dPay","dQ"].forEach(function(i){$(i).oninput=renderData});["sFrom","sTo","sPay"].forEach(function(i){$(i).oninput=renderSum});$("xDate").oninput=renderSend;
+function renderData(){
+  var q=$("dQ").value.trim().toLowerCase(),py=$("dPay").value;
+  var l=S.bills.filter(function(b){return inRange(b,$("dFrom").value,$("dTo").value)&&(py==="All"||b.pay_type===py)&&(!q||(b.invoice_no+" "+b.name+" "+b.reference+" "+b.mobile).toLowerCase().indexOf(q)>=0)});
+  $("dTb").innerHTML=l.map(function(b){var ed=b.status==="Saved"||b.status==="Rejected";
+    return"<tr><td>"+esc(b.invoice_no)+"</td><td>"+fd(b.date)+"</td><td>"+esc(b.pay_type==="Due"?b.reference:b.name)+"</td><td>"+b.pay_type+'</td><td class="n">'+money(b.total)+'</td><td><span class="st '+b.status+'" title="'+esc(b.reject_reason)+'">'+b.status+"</span></td><td style=\"white-space:nowrap\"><button class=\"l\" data-a=\"p\" data-k=\""+b.key+"\">Print</button>"+(ed?'<button class="l" data-a="e" data-k="'+b.key+'">Edit</button><button class="l" data-a="d" data-k="'+b.key+'">Delete</button>':"")+"</td></tr>"}).join("")||'<tr><td colspan="7" class="m">No bills.</td></tr>';
+  $("dTot").innerHTML=totals(l)}
+$("dTb").onclick=async function(e){var a=e.target.dataset.a;if(!a)return;var b=S.bills.filter(function(x){return x.key===e.target.dataset.k})[0];if(!b)return;
+  if(a==="p")printBill(b);
+  if(a==="e"){initForm(b);document.querySelector('#tabs [data-t="memo"]').click()}
+  if(a==="d"&&confirm("Delete "+b.invoice_no+"?")){var j=await call({action:"r_delete",key:b.key});if(j){toast("Deleted");loadAll()}}};
+
+/* ---------- summary ---------- */
+function summary(from,to,seg){
+  var l=S.bills.filter(function(b){return inRange(b,from,to)&&(seg==="All"||b.pay_type===seg)}),ag={},ord=[];
+  l.forEach(function(b){b.items.forEach(function(it){var k=it.name.toLowerCase(),g=ag[k];if(!g){g=ag[k]={name:it.name,qty:0,amt:0};ord.push(k)}g.qty+=num(it.qty);g.amt+=num(it.amount)})});
+  return{list:l,items:ord.map(function(k){return ag[k]})}}
+function sumHtml(){
+  var seg=$("sPay").value,s=summary($("sFrom").value,$("sTo").value,seg),q=0,a=0;
+  var h='<div class="w"><table><thead><tr><th>Item Name</th><th class="n">Rate (avg)</th><th class="n">Total Qty</th><th class="n">Total Amount</th></tr></thead><tbody>'+
+    s.items.map(function(g){q+=g.qty;a+=g.amt;return"<tr><td>"+esc(g.name)+'</td><td class="n">'+money(g.qty?g.amt/g.qty:0)+'</td><td class="n">'+r2(g.qty)+'</td><td class="n">'+money(g.amt)+"</td></tr>"}).join("")+
+    '<tr><th>GRAND TOTAL</th><th></th><th class="n">'+r2(q)+'</th><th class="n">'+money(a)+"</th></tr></tbody></table></div>";
+  var due=s.list.filter(function(b){return b.pay_type==="Due"});
+  if(due.length)h+='<h2 style="margin-top:12px">Due List</h2><div class="w"><table><thead><tr><th>Invoice</th><th>Name / Reference</th><th>Ordered By</th><th class="n">Amount</th></tr></thead><tbody>'+
+    due.map(function(b){return"<tr><td>"+esc(b.invoice_no)+"</td><td>"+esc(b.reference)+"</td><td>"+esc(b.ordered_by)+'</td><td class="n">'+money(b.total)+"</td></tr>"}).join("")+"</tbody></table></div>";
+  return h+'<div class="tot">'+totals(s.list)+"</div>"}
+function renderSum(){$("sOut").innerHTML=sumHtml()}
+$("sPrint").onclick=function(){printHtml("<h2>"+esc(S.co.name)+"</h2><div class=c>"+esc(S.co.address)+"</div><h3>Sales Summary: "+$("sPay").value+" ("+fd($("sFrom").value)+" to "+fd($("sTo").value)+")</h3>"+sumHtml())};
+
+/* ---------- send ---------- */
+function renderSend(){
+  var d=$("xDate").value,un=S.bills.filter(function(b){return b.date===d&&(b.status==="Saved"||b.status==="Rejected")}),h='<div class="w"><table><thead><tr><th>Segment</th><th class="n">Bills to send</th><th class="n">Amount</th></tr></thead><tbody>';
+  ["Cash","Due","Bkash"].forEach(function(s){var l=un.filter(function(b){return b.pay_type===s});h+="<tr><td>"+s+'</td><td class="n">'+l.length+'</td><td class="n">'+money(l.reduce(function(a,b){return a+b.total},0))+"</td></tr>"});
+  h+='</tbody></table></div><h2 style="margin-top:12px">Sent history</h2><div class="w"><table><thead><tr><th>Date</th><th>Segment</th><th class="n">Amount</th><th>Status</th><th>Note</th></tr></thead><tbody>'+
+    S.sends.map(function(x){return"<tr><td>"+fd(x.date)+"</td><td>"+x.segment+'</td><td class="n">'+money(x.amount)+'</td><td><span class="st '+x.status+'">'+x.status+"</span></td><td>"+esc(x.status==="Rejected"?x.reject_reason:x.head_voucher_no)+"</td></tr>"}).join("")+"</tbody></table></div>";
+  $("xOut").innerHTML=h}
+$("xBtn").onclick=async function(){var d=$("xDate").value;if(!confirm("Send all unsent bills of "+fd(d)+" to the Head Office?"))return;
+  var j=await call({action:"r_send",date:d});if(!j)return;
+  toast(j.results.map(function(r){return r.segment+": "+(r.ok?"sent":r.error)}).join(" | "));loadAll()};
+
+/* ---------- print (A4) ---------- */
+function printHtml(body){
+  var f=document.createElement("iframe");f.style.cssText="position:fixed;width:0;height:0;border:0";document.body.appendChild(f);
+  var d=f.contentWindow.document;d.open();
+  d.write('<html><head><meta charset="utf-8"><title>Print</title><style>@page{size:A4;margin:12mm}body{font:14px Arial,sans-serif;color:#000}h2,h3,.c{text-align:center;margin:3px 0}table{border-collapse:collapse;width:100%;margin:8px 0}th,td{border:1px solid #000;padding:5px 7px;text-align:left}.n{text-align:right}.tot{display:flex;gap:14px;margin-top:10px}.tot div{border:1px solid #000;padding:6px 12px}.tot b{display:block}.h{display:flex;justify-content:space-between;margin:6px 0}.sg{display:flex;justify-content:space-between;margin-top:60px}</style></head><body>'+body+"</body></html>");
+  d.close();f.onload=function(){};setTimeout(function(){f.contentWindow.focus();f.contentWindow.print();setTimeout(function(){f.remove()},2000)},300)}
+function printBill(b){
+  var h="<h2>"+esc(S.co.name)+"</h2><div class=c>"+esc(S.co.address)+"</div><h3>MEMO / INVOICE</h3>"+
+   '<div class="h"><div>Invoice No: <b>'+esc(b.invoice_no)+"</b></div><div>Date: <b>"+fd(b.date)+"</b></div></div>"+
+   "<div>Name: "+esc(b.name)+"</div><div>Address: "+esc(b.address)+"</div><div>Mobile: "+esc(b.mobile)+"</div><div>Payment: <b>"+b.pay_type+"</b>"+
+   (b.pay_type==="Due"?" &nbsp; Name / Reference: "+esc(b.reference)+" &nbsp; Ordered By: "+esc(b.ordered_by):"")+(b.trx?" &nbsp; Trx: "+esc(b.trx):"")+"</div>"+
+   '<table><thead><tr><th>SL. No.</th><th>Description</th><th class="n">Qty</th><th class="n">Rate</th><th class="n">Amount</th></tr></thead><tbody>'+
+   b.items.map(function(it,i){return"<tr><td>"+(i+1)+"</td><td>"+esc(it.name)+'</td><td class="n">'+it.qty+'</td><td class="n">'+money(it.rate)+'</td><td class="n">'+money(it.amount)+"</td></tr>"}).join("")+
+   '<tr><th colspan="4" class="n">Total</th><th class="n">'+money(b.total)+"</th></tr></tbody></table><div>In Word: <b>"+words(b.total)+'</b></div><div class="sg"><div>Customer Signature</div><div>Authorized Signature</div></div>';
+  printHtml(h)}
+</script></body></html>
